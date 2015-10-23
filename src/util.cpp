@@ -107,6 +107,7 @@ bool fDaemon = false;
 bool fServer = false;
 string strMiscWarning;
 bool fLogTimestamps = false;
+bool fLogTimeMicros = DEFAULT_LOGTIMEMICROS;
 bool fLogIPs = false;
 volatile bool fReopenDebugLog = false;
 CTranslationInterface translationInterface;
@@ -214,6 +215,7 @@ bool LogAcceptCategory(const char* category)
     return true;
 }
 
+
 int LogPrintStr(const std::string &str)
 {
     int ret = 0; // Returns total number of characters written
@@ -242,8 +244,13 @@ int LogPrintStr(const std::string &str)
         }
 
         // Debug print useful for profiling
-        if (fLogTimestamps && fStartedNewLine)
-            ret += fprintf(fileout, "%s ", DateTimeStrFormat("%Y-%m-%d %H:%M:%S", GetTime()).c_str());
+        if (fLogTimestamps && fStartedNewLine) {
+            int64_t nTimeMicros = GetLogTimeMicros();
+            ret += fprintf(fileout, "%s", DateTimeStrFormat("%Y-%m-%d %H:%M:%S", nTimeMicros/1000000).c_str());
+            if (fLogTimeMicros)
+               ret += fprintf(fileout, ".%06lld", (long long)nTimeMicros%1000000);
+            ret += fprintf(fileout, " ");
+        }
         if (!str.empty() && str[str.size()-1] == '\n')
             fStartedNewLine = true;
         else
