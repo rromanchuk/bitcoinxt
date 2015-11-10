@@ -1809,6 +1809,17 @@ void RelayTransaction(const CTransaction& tx, const CDataStream& ss)
     }
 }
 
+bool FindTransactionInRelayMap(uint256 hash, CTransaction &out) {
+    LOCK(cs_mapRelay);
+    CInv inv(MSG_TX, hash);
+    map<CInv, CDataStream>::iterator mi = mapRelay.find(inv);
+    if (mi != mapRelay.end()) {
+        (*mi).second >> out;
+        return true;
+    }
+    return false;
+}
+
 void CNode::RecordBytesRecv(uint64_t bytes)
 {
     LOCK(cs_totalBytesRecv);
@@ -1993,6 +2004,7 @@ CNode::CNode(SOCKET hSocketIn, CAddress addrIn, std::string addrNameIn, bool fIn
     fWhitelisted = false;
     fOneShot = false;
     fClient = false; // set by version message
+    thinBlockWaitingForTxns = -1;
     fInbound = fInboundIn;
     fNetworkNode = false;
     fSuccessfullyConnected = false;
