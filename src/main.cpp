@@ -5140,14 +5140,16 @@ bool ProcessMessage(CNode* pfrom, string strCommand, CDataStream& vRecv, int64_t
             sProblem = "Short payload";
         }
 
-        if (!(sProblem.empty())) {
-            LogPrint("net", "pong peer=%d %s: %s, %x expected, %x received, %u bytes\n",
+        if (1) {
+            LogPrint("net", "pong peer=%d %s: %s, %x expected, %x received, %u bytes, %lld usec, peeraddr=%s\n",
                 pfrom->id,
                 pfrom->cleanSubVer,
                 sProblem,
                 pfrom->nPingNonceSent,
                 nonce,
-                nAvail);
+                nAvail,
+                pfrom->nPingUsecTime,
+                pfrom->addr.ToString());
         }
         if (bPingFinished) {
             pfrom->nPingNonceSent = 0;
