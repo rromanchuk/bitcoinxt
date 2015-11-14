@@ -199,7 +199,7 @@ bool IsStealthMode() {
 }
 
 bool UsingThinBlocks() {
-    return GetBoolArg("-use-thin-blocks", true);
+    return GetBoolArg("-use-thin-blocks", false);
 }
 
 //////////////////////////////////////////////////////////////////////////////
