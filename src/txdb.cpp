@@ -40,7 +40,7 @@ void static BatchWriteHashBestChain(CLevelDBBatch &batch, const uint256 &hash) {
     batch.Write(DB_BEST_BLOCK, hash);
 }
 
-CCoinsViewDB::CCoinsViewDB(size_t nCacheSize, bool fMemory, bool fWipe) : db(GetDataDir() / "chainstate", nCacheSize, fMemory, fWipe) {
+CCoinsViewDB::CCoinsViewDB(size_t nCacheSize, bool &isObfuscated, bool fMemory, bool fWipe) : db(GetDataDir() / "chainstate", nCacheSize, isObfuscated, fMemory, fWipe) {
 }
 
 bool CCoinsViewDB::GetCoins(const uint256 &txid, CCoins &coins) const {
@@ -78,7 +78,7 @@ bool CCoinsViewDB::BatchWrite(CCoinsMap &mapCoins, const uint256 &hashBlock) {
     return db.WriteBatch(batch);
 }
 
-CBlockTreeDB::CBlockTreeDB(size_t nCacheSize, bool fMemory, bool fWipe) : CLevelDBWrapper(GetDataDir() / "blocks" / "index", nCacheSize, fMemory, fWipe) {
+CBlockTreeDB::CBlockTreeDB(size_t nCacheSize, bool &isObfuscated, bool fMemory, bool fWipe) : CLevelDBWrapper(GetDataDir() / "blocks" / "index", nCacheSize, isObfuscated, fMemory, fWipe) {
 }
 
 bool CBlockTreeDB::ReadBlockFileInfo(int nFile, CBlockFileInfo &info) {
@@ -270,32 +270,32 @@ bool CBlockTreeDB::LoadBlockIndexGuts()
     return true;
 }
 
-uint256 CBlockTreeDB::ForkActivated(int32_t nForkVersion) const
+uint256 CBlockTreeDB::ForkBitActivated(int32_t nForkVersionBit) const
 {
     // Returns block at which a supermajority was reached for given
-    // fork version.
+    // fork version bit.
     // NOTE! The  max blocksize fork adds a grace period
     // during which no bigger blocks are allowed; this routine
     // just keeps track of the hash of the block that
     // triggers the fork condition
 
-    std::map<int32_t, uint256>::const_iterator it = forkActivationMap.find(nForkVersion);
+    std::map<int32_t, uint256>::const_iterator it = forkActivationMap.find(nForkVersionBit);
     if (it != forkActivationMap.end())
         return it->second;
 
     return uint256();
 }
 
-bool CBlockTreeDB::ActivateFork(int32_t nForkVersion, const uint256& blockHash)
+bool CBlockTreeDB::ActivateForkBit(int32_t nForkVersionBit, const uint256& blockHash)
 {
     // Called when a supermajority of blocks (ending with blockHash)
     // support a rule change
     // OR if a chain re-org happens around the activation block,
     // called with uint256(0) to reset the flag in the database.
 
-    forkActivationMap[nForkVersion] = blockHash;
+    forkActivationMap[nForkVersionBit] = blockHash;
     if (blockHash == uint256())
-        return Erase(make_pair(DB_FORK_ACTIVATION, nForkVersion));
+        return Erase(make_pair(DB_FORK_ACTIVATION, nForkVersionBit));
     else
-        return Write(make_pair(DB_FORK_ACTIVATION, nForkVersion), blockHash);
+        return Write(make_pair(DB_FORK_ACTIVATION, nForkVersionBit), blockHash);
 }

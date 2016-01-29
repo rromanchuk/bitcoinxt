@@ -95,9 +95,11 @@ BITCOIN_CORE_H = \
   consensus/validation.h \
   core_io.h \
   curl_wrapper.h \
+  core_memusage.h \
   eccryptoverify.h \
   ecwrapper.h \
   hash.h \
+  inflightindex.h \
   init.h \
   ipgroups.h \
   key.h \
@@ -109,14 +111,15 @@ BITCOIN_CORE_H = \
   memusage.h \
   merkleblock.h \
   miner.h \
-  mruset.h \
   net.h \
   netbase.h \
   noui.h \
+  options.h \
   policy/fees.h \
   pow.h \
   primitives/block.h \
   primitives/transaction.h \
+  process_merkleblock.h \
   protocol.h \
   pubkey.h \
   random.h \
@@ -137,6 +140,7 @@ BITCOIN_CORE_H = \
   support/cleanse.h \
   support/pagelocker.h \
   sync.h \
+  thinblockbuilder.h \
   threadsafety.h \
   timedata.h \
   tinyformat.h \
@@ -184,6 +188,7 @@ libbitcoin_server_a_SOURCES = \
   chain.cpp \
   checkpoints.cpp \
   curl_wrapper.cpp \
+  inflightindex.cpp \
   init.cpp \
   ipgroups.cpp \
   leakybucket.cpp \
@@ -193,8 +198,10 @@ libbitcoin_server_a_SOURCES = \
   miner.cpp \
   net.cpp \
   noui.cpp \
+  options.cpp \
   policy/fees.cpp \
   pow.cpp \
+  process_merkleblock.cpp \
   rest.cpp \
   rpcblockchain.cpp \
   rpcmining.cpp \
@@ -203,6 +210,7 @@ libbitcoin_server_a_SOURCES = \
   rpcrawtransaction.cpp \
   rpcserver.cpp \
   script/sigcache.cpp \
+  thinblockbuilder.cpp \
   timedata.cpp \
   txdb.cpp \
   txmempool.cpp \
@@ -288,6 +296,7 @@ libbitcoin_util_a_SOURCES = \
   compat/glibc_sanity.cpp \
   compat/glibcxx_sanity.cpp \
   compat/strnlen.cpp \
+  options.cpp \
   random.cpp \
   rpcprotocol.cpp \
   support/cleanse.cpp \

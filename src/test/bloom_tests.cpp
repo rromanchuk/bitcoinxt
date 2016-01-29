@@ -7,7 +7,6 @@
 #include "base58.h"
 #include "clientversion.h"
 #include "key.h"
-#include "main.h"
 #include "merkleblock.h"
 #include "random.h"
 #include "serialize.h"
@@ -23,8 +22,6 @@
 #include <boost/tuple/tuple.hpp>
 
 using namespace std;
-
-static const int maxTxn = 1000*1000/MIN_TRANSACTION_SIZE; // upper limit, number txns in 1MB block
 
 BOOST_FIXTURE_TEST_SUITE(bloom_tests, BasicTestingSetup)
 
@@ -207,7 +204,7 @@ BOOST_AUTO_TEST_CASE(merkle_block_1)
     BOOST_CHECK(merkleBlock.vMatchedTxn[0].first == 8);
 
     vector<uint256> vMatched;
-    BOOST_CHECK(merkleBlock.txn.ExtractMatches(maxTxn, vMatched) == block.hashMerkleRoot);
+    BOOST_CHECK(merkleBlock.txn.ExtractMatches(vMatched) == block.hashMerkleRoot);
     BOOST_CHECK(vMatched.size() == merkleBlock.vMatchedTxn.size());
     for (unsigned int i = 0; i < vMatched.size(); i++)
         BOOST_CHECK(vMatched[i] == merkleBlock.vMatchedTxn[i].second);
@@ -224,7 +221,7 @@ BOOST_AUTO_TEST_CASE(merkle_block_1)
     BOOST_CHECK(merkleBlock.vMatchedTxn[0].second == uint256S("0xdd1fd2a6fc16404faf339881a90adbde7f4f728691ac62e8f168809cdfae1053"));
     BOOST_CHECK(merkleBlock.vMatchedTxn[0].first == 7);
 
-    BOOST_CHECK(merkleBlock.txn.ExtractMatches(maxTxn, vMatched) == block.hashMerkleRoot);
+    BOOST_CHECK(merkleBlock.txn.ExtractMatches(vMatched) == block.hashMerkleRoot);
     BOOST_CHECK(vMatched.size() == merkleBlock.vMatchedTxn.size());
     for (unsigned int i = 0; i < vMatched.size(); i++)
         BOOST_CHECK(vMatched[i] == merkleBlock.vMatchedTxn[i].second);
@@ -252,7 +249,7 @@ BOOST_AUTO_TEST_CASE(merkle_block_2)
     BOOST_CHECK(merkleBlock.vMatchedTxn[0].first == 0);
 
     vector<uint256> vMatched;
-    BOOST_CHECK(merkleBlock.txn.ExtractMatches(maxTxn, vMatched) == block.hashMerkleRoot);
+    BOOST_CHECK(merkleBlock.txn.ExtractMatches(vMatched) == block.hashMerkleRoot);
     BOOST_CHECK(vMatched.size() == merkleBlock.vMatchedTxn.size());
     for (unsigned int i = 0; i < vMatched.size(); i++)
         BOOST_CHECK(vMatched[i] == merkleBlock.vMatchedTxn[i].second);
@@ -278,7 +275,7 @@ BOOST_AUTO_TEST_CASE(merkle_block_2)
     BOOST_CHECK(merkleBlock.vMatchedTxn[3].second == uint256S("0x3c1d7e82342158e4109df2e0b6348b6e84e403d8b4046d7007663ace63cddb23"));
     BOOST_CHECK(merkleBlock.vMatchedTxn[3].first == 3);
 
-    BOOST_CHECK(merkleBlock.txn.ExtractMatches(maxTxn, vMatched) == block.hashMerkleRoot);
+    BOOST_CHECK(merkleBlock.txn.ExtractMatches(vMatched) == block.hashMerkleRoot);
     BOOST_CHECK(vMatched.size() == merkleBlock.vMatchedTxn.size());
     for (unsigned int i = 0; i < vMatched.size(); i++)
         BOOST_CHECK(vMatched[i] == merkleBlock.vMatchedTxn[i].second);
@@ -306,7 +303,7 @@ BOOST_AUTO_TEST_CASE(merkle_block_2_with_update_none)
     BOOST_CHECK(merkleBlock.vMatchedTxn[0].first == 0);
 
     vector<uint256> vMatched;
-    BOOST_CHECK(merkleBlock.txn.ExtractMatches(maxTxn, vMatched) == block.hashMerkleRoot);
+    BOOST_CHECK(merkleBlock.txn.ExtractMatches(vMatched) == block.hashMerkleRoot);
     BOOST_CHECK(vMatched.size() == merkleBlock.vMatchedTxn.size());
     for (unsigned int i = 0; i < vMatched.size(); i++)
         BOOST_CHECK(vMatched[i] == merkleBlock.vMatchedTxn[i].second);
@@ -329,7 +326,7 @@ BOOST_AUTO_TEST_CASE(merkle_block_2_with_update_none)
     BOOST_CHECK(merkleBlock.vMatchedTxn[2].second == uint256S("0x3c1d7e82342158e4109df2e0b6348b6e84e403d8b4046d7007663ace63cddb23"));
     BOOST_CHECK(merkleBlock.vMatchedTxn[2].first == 3);
 
-    BOOST_CHECK(merkleBlock.txn.ExtractMatches(maxTxn, vMatched) == block.hashMerkleRoot);
+    BOOST_CHECK(merkleBlock.txn.ExtractMatches(vMatched) == block.hashMerkleRoot);
     BOOST_CHECK(vMatched.size() == merkleBlock.vMatchedTxn.size());
     for (unsigned int i = 0; i < vMatched.size(); i++)
         BOOST_CHECK(vMatched[i] == merkleBlock.vMatchedTxn[i].second);
@@ -356,7 +353,7 @@ BOOST_AUTO_TEST_CASE(merkle_block_3_and_serialize)
     BOOST_CHECK(merkleBlock.vMatchedTxn[0].first == 0);
 
     vector<uint256> vMatched;
-    BOOST_CHECK(merkleBlock.txn.ExtractMatches(maxTxn, vMatched) == block.hashMerkleRoot);
+    BOOST_CHECK(merkleBlock.txn.ExtractMatches(vMatched) == block.hashMerkleRoot);
     BOOST_CHECK(vMatched.size() == merkleBlock.vMatchedTxn.size());
     for (unsigned int i = 0; i < vMatched.size(); i++)
         BOOST_CHECK(vMatched[i] == merkleBlock.vMatchedTxn[i].second);
@@ -395,7 +392,7 @@ BOOST_AUTO_TEST_CASE(merkle_block_4)
     BOOST_CHECK(merkleBlock.vMatchedTxn[0].first == 6);
 
     vector<uint256> vMatched;
-    BOOST_CHECK(merkleBlock.txn.ExtractMatches(maxTxn, vMatched) == block.hashMerkleRoot);
+    BOOST_CHECK(merkleBlock.txn.ExtractMatches(vMatched) == block.hashMerkleRoot);
     BOOST_CHECK(vMatched.size() == merkleBlock.vMatchedTxn.size());
     for (unsigned int i = 0; i < vMatched.size(); i++)
         BOOST_CHECK(vMatched[i] == merkleBlock.vMatchedTxn[i].second);
@@ -412,7 +409,7 @@ BOOST_AUTO_TEST_CASE(merkle_block_4)
 
     BOOST_CHECK(merkleBlock.vMatchedTxn[1] == pair);
 
-    BOOST_CHECK(merkleBlock.txn.ExtractMatches(maxTxn, vMatched) == block.hashMerkleRoot);
+    BOOST_CHECK(merkleBlock.txn.ExtractMatches(vMatched) == block.hashMerkleRoot);
     BOOST_CHECK(vMatched.size() == merkleBlock.vMatchedTxn.size());
     for (unsigned int i = 0; i < vMatched.size(); i++)
         BOOST_CHECK(vMatched[i] == merkleBlock.vMatchedTxn[i].second);
@@ -472,7 +469,7 @@ static std::vector<unsigned char> RandomData()
 BOOST_AUTO_TEST_CASE(rolling_bloom)
 {
     // last-100-entry, 1% false positive:
-    CRollingBloomFilter rb1(100, 0.01, 0);
+    CRollingBloomFilter rb1(100, 0.01);
 
     // Overfill:
     static const int DATASIZE=399;
@@ -503,7 +500,7 @@ BOOST_AUTO_TEST_CASE(rolling_bloom)
     BOOST_CHECK(nHits < 175);
 
     BOOST_CHECK(rb1.contains(data[DATASIZE-1]));
-    rb1.clear();
+    rb1.reset();
     BOOST_CHECK(!rb1.contains(data[DATASIZE-1]));
 
     // Now roll through data, make sure last 100 entries
@@ -530,7 +527,7 @@ BOOST_AUTO_TEST_CASE(rolling_bloom)
     BOOST_CHECK(nHits < 100);
 
     // last-1000-entry, 0.01% false positive:
-    CRollingBloomFilter rb2(1000, 0.001, 0);
+    CRollingBloomFilter rb2(1000, 0.001);
     for (int i = 0; i < DATASIZE; i++) {
         rb2.insert(data[i]);
     }

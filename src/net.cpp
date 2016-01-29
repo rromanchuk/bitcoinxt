@@ -8,7 +8,6 @@
 #endif
 
 #include "net.h"
-#include "main.h"
 #include "addrman.h"
 #include "chainparams.h"
 #include "clientversion.h"
@@ -17,6 +16,7 @@
 #include "ui_interface.h"
 #include "crypto/common.h"
 #include "ipgroups.h"
+#include "options.h"
 
 #ifdef WIN32
 #include <string.h>
@@ -70,7 +70,7 @@ namespace {
 //
 bool fDiscover = true;
 bool fListen = true;
-uint64_t nLocalServices = NODE_NETWORK | NODE_GETUTXO;
+uint64_t nLocalServices = NODE_NETWORK | NODE_GETUTXO | NODE_BLOOM;
 CCriticalSection cs_mapLocalHost;
 map<CNetAddr, LocalServiceInfo> mapLocalHost;
 static bool vfReachable[NET_MAX] = {};
@@ -434,13 +434,16 @@ void CNode::PushVersion()
         LogPrint("net", "send version message: version %d, blocks=%d, us=%s, peer=%d\n", PROTOCOL_VERSION, nBestHeight, addrMe.ToString(), id);
 
     // Stealth mode: pretend to be like Bitcoin Core to hide from DoS attackers.
-    if (IsStealthMode()) {
-        uint64_t services = NODE_NETWORK;
+    if (Opt().IsStealthMode()) {
+        uint64_t services = 0;
+        if (nLocalServices & NODE_NETWORK)
+            services = NODE_NETWORK;
+
         PushMessage("version", 70002, services, nTime, addrYou, addrMe,
-                nLocalHostNonce, FormatSubVersion("Satoshi", CLIENT_VERSION, std::vector<string>(), ""), nBestHeight, true);        
+                nLocalHostNonce, XTSubVersion(), nBestHeight, true);
     } else {
         PushMessage("version", PROTOCOL_VERSION, nLocalServices, nTime, addrYou, addrMe,
-                nLocalHostNonce, FormatSubVersion(CLIENT_NAME, CLIENT_VERSION, std::vector<string>(), CLIENT_VERSION_XT_SUBVER), nBestHeight, true);
+                nLocalHostNonce, XTSubVersion(), nBestHeight, true);
     }
 }
 
@@ -658,7 +661,11 @@ void SocketSendData(CNode *pnode)
 
         int amt2Send = min((int)(data.size() - pnode->nSendOffset),
                 sendShaper.available(SEND_SHAPER_MIN_FRAG));
-        if (amt2Send==0) break;
+        if (amt2Send == 0) {
+            if (sendShaper.available(SEND_SHAPER_MIN_FRAG) != INT_MAX) //Sleep if traffic shaping is turned on
+                MilliSleep(10);
+            break;
+        }
         int nBytes = send(pnode->hSocket, &data[pnode->nSendOffset], amt2Send, MSG_NOSIGNAL | MSG_DONTWAIT);
         if (nBytes > 0) {
             pnode->nLastSend = GetTime();
@@ -978,7 +985,7 @@ void ThreadSocketHandler()
                         // max of min makes sure amt is in a range reasonable for buffer allocation
                         const int amt = max(1, min(amt2Recv, MAX_RECV_CHUNK));
                         char *pchBuf = new char[amt];
-                        int nBytes = recv(pnode->hSocket, pchBuf, sizeof(pchBuf), MSG_DONTWAIT);
+                        int nBytes = recv(pnode->hSocket, pchBuf, amt, MSG_DONTWAIT);
                         if (nBytes > 0)
                         {
                             receiveShaper.consume(nBytes);
@@ -1845,6 +1852,17 @@ void RelayTransaction(const CTransaction& tx, const CDataStream& ss)
     }
 }
 
+bool FindTransactionInRelayMap(uint256 hash, CTransaction &out) {
+    LOCK(cs_mapRelay);
+    CInv inv(MSG_TX, hash);
+    map<CInv, CDataStream>::iterator mi = mapRelay.find(inv);
+    if (mi != mapRelay.end()) {
+        (*mi).second >> out;
+        return true;
+    }
+    return false;
+}
+
 void CNode::RecordBytesRecv(uint64_t bytes)
 {
     LOCK(cs_totalBytesRecv);
@@ -2010,8 +2028,8 @@ unsigned int SendBufferSize() { return 1000*GetArg("-maxsendbuffer", 1*1000); }
 
 CNode::CNode(SOCKET hSocketIn, CAddress addrIn, std::string addrNameIn, bool fInboundIn) :
     ssSend(SER_NETWORK, INIT_PROTO_VERSION),
-    addrKnown(5000, 0.001, insecure_rand()),
-    setInventoryKnown(SendBufferSize() / 1000)
+    addrKnown(5000, 0.001),
+    filterInventoryKnown(50000, 0.000001)
 {
     nServices = 0;
     hSocket = hSocketIn;
@@ -2029,6 +2047,7 @@ CNode::CNode(SOCKET hSocketIn, CAddress addrIn, std::string addrNameIn, bool fIn
     fWhitelisted = false;
     fOneShot = false;
     fClient = false; // set by version message
+    thinBlockNonce = 0;
     fInbound = fInboundIn;
     fNetworkNode = false;
     fSuccessfullyConnected = false;
@@ -2038,6 +2057,7 @@ CNode::CNode(SOCKET hSocketIn, CAddress addrIn, std::string addrNameIn, bool fIn
     nSendOffset = 0;
     hashContinue = uint256();
     nStartingHeight = -1;
+    filterInventoryKnown.reset();
     fGetAddr = false;
     fRelayTxes = false;
     pfilter = new CBloomFilter();
@@ -2154,4 +2174,21 @@ void CNode::EndMessage() UNLOCK_FUNCTION(cs_vSend)
         SocketSendData(this);
 
     LEAVE_CRITICAL_SECTION(cs_vSend);
+}
+
+bool CNode::SupportsBloom() const {
+    return nVersion < NO_BLOOM_VERSION || nServices & NODE_BLOOM;
+}
+
+bool CNode::SupportsThinBlocks() const {
+    if (!SupportsBloom())
+        return false;
+
+    // Before Bitcoin Core PR #7100 and Bitcoin XT PR #109 peers would
+    // only track 1000 inv entries in filterInventoryKnown - causing them
+    // to send us a lot more txs than we require for thin blocks.
+
+    // Some pre-releases of Bitcoin Core 0.12 have >= NO_BLOOM_VERSION, without
+    // this fix, so those will be a false positive.
+    return nVersion >= NO_BLOOM_VERSION;
 }

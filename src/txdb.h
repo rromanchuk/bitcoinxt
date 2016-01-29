@@ -32,7 +32,7 @@ class CCoinsViewDB : public CCoinsView
 protected:
     CLevelDBWrapper db;
 public:
-    CCoinsViewDB(size_t nCacheSize, bool fMemory = false, bool fWipe = false);
+    CCoinsViewDB(size_t nCacheSize, bool &isObfuscated, bool fMemory = false, bool fWipe = false);
 
     bool GetCoins(const uint256 &txid, CCoins &coins) const;
     bool HaveCoins(const uint256 &txid) const;
@@ -45,7 +45,7 @@ public:
 class CBlockTreeDB : public CLevelDBWrapper
 {
 public:
-    CBlockTreeDB(size_t nCacheSize, bool fMemory = false, bool fWipe = false);
+    CBlockTreeDB(size_t nCacheSize, bool &isObfuscated, bool fMemory = false, bool fWipe = false);
 private:
     CBlockTreeDB(const CBlockTreeDB&);
     void operator=(const CBlockTreeDB&);
@@ -62,8 +62,8 @@ public:
     bool WriteFlag(const std::string &name, bool fValue);
     bool ReadFlag(const std::string &name, bool &fValue);
     bool LoadBlockIndexGuts();
-    uint256 ForkActivated(int32_t nForkVersion) const;
-    bool ActivateFork(int32_t nForkVersion, const uint256& blockHash);
+    uint256 ForkBitActivated(int32_t nForkVersionBit) const;
+    bool ActivateForkBit(int32_t nForkVersionBit, const uint256& blockHash);
 };
 
 #endif // BITCOIN_TXDB_H

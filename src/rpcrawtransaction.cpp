@@ -298,8 +298,7 @@ Value verifytxoutproof(const Array& params, bool fHelp)
     Array res;
 
     vector<uint256> vMatch;
-    uint64_t nMaxTransactions = Params().GetConsensus().MaxBlockSize(merkleBlock.GetBlockTime(), sizeForkTime.load())/60; // 60 bytes == min tx size
-    if (merkleBlock.txn.ExtractMatches(nMaxTransactions, vMatch) != merkleBlock.header.hashMerkleRoot)
+    if (merkleBlock.txn.ExtractMatches(vMatch) != merkleBlock.header.hashMerkleRoot)
         return res;
 
     LOCK(cs_main);
@@ -793,7 +792,7 @@ Value sendrawtransaction(const Array& params, bool fHelp)
         // push to local node and sync with wallets
         CValidationState state;
         bool fMissingInputs;
-        if (!AcceptToMemoryPool(mempool, state, tx, false, &fMissingInputs, !fOverrideFees)) {
+        if (!AcceptToMemoryPool(mempool, state, tx, false, &fMissingInputs, false, !fOverrideFees)) {
             if (state.IsInvalid()) {
                 throw JSONRPCError(RPC_TRANSACTION_REJECTED, strprintf("%i: %s", state.GetRejectCode(), state.GetRejectReason()));
             } else {
